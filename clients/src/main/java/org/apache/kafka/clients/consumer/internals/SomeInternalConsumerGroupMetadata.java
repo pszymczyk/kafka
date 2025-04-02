@@ -14,9 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.kafka.clients.consumer;
-
-import org.apache.kafka.common.requests.JoinGroupRequest;
+package org.apache.kafka.clients.consumer.internals;
 
 import java.util.Objects;
 import java.util.Optional;
@@ -25,28 +23,21 @@ import java.util.Optional;
  * A metadata struct containing the consumer group information.
  * Note: Any change to this class is considered public and requires a KIP.
  */
-public class ConsumerGroupMetadata {
+public class SomeInternalConsumerGroupMetadata {
     private final String groupId;
     private final int generationId;
     private final String memberId;
     private final Optional<String> groupInstanceId;
 
 
-    ConsumerGroupMetadata(String groupId,
-                                 int generationId,
-                                 String memberId,
-                                 Optional<String> groupInstanceId) {
+    SomeInternalConsumerGroupMetadata(String groupId,
+                                      int generationId,
+                                      String memberId,
+                                      Optional<String> groupInstanceId) {
         this.groupId = Objects.requireNonNull(groupId, "group.id can't be null");
         this.generationId = generationId;
         this.memberId = Objects.requireNonNull(memberId, "member.id can't be null");
         this.groupInstanceId = Objects.requireNonNull(groupInstanceId, "group.instance.id can't be null");
-    }
-
-    ConsumerGroupMetadata(String groupId) {
-        this(groupId,
-            JoinGroupRequest.UNKNOWN_GENERATION_ID,
-            JoinGroupRequest.UNKNOWN_MEMBER_ID,
-            Optional.empty());
     }
 
     public String groupId() {
@@ -78,7 +69,7 @@ public class ConsumerGroupMetadata {
     public boolean equals(final Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
-        final ConsumerGroupMetadata that = (ConsumerGroupMetadata) o;
+        final SomeInternalConsumerGroupMetadata that = (SomeInternalConsumerGroupMetadata) o;
         return generationId == that.generationId &&
             Objects.equals(groupId, that.groupId) &&
             Objects.equals(memberId, that.memberId) &&

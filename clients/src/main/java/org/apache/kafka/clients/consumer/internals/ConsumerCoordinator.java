@@ -19,7 +19,6 @@ package org.apache.kafka.clients.consumer.internals;
 import org.apache.kafka.clients.GroupRebalanceConfig;
 import org.apache.kafka.clients.consumer.CommitFailedException;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
-import org.apache.kafka.clients.consumer.ConsumerGroupMetadata;
 import org.apache.kafka.clients.consumer.ConsumerPartitionAssignor;
 import org.apache.kafka.clients.consumer.ConsumerPartitionAssignor.Assignment;
 import org.apache.kafka.clients.consumer.ConsumerPartitionAssignor.GroupSubscription;
@@ -126,7 +125,7 @@ public final class ConsumerCoordinator extends AbstractCoordinator {
     private MetadataSnapshot metadataSnapshot;
     private MetadataSnapshot assignmentSnapshot;
     private Timer nextAutoCommitTimer;
-    private ConsumerGroupMetadata groupMetadata;
+    private SomeInternalConsumerGroupMetadata groupMetadata;
     // hold onto request&future for committed offset requests to enable async calls.
     private PendingCommittedOffsetRequest pendingCommittedOffsetRequest = null;
 
@@ -199,7 +198,7 @@ public final class ConsumerCoordinator extends AbstractCoordinator {
         this.inFlightAsyncCommits = new AtomicInteger();
         this.pendingAsyncCommits = new AtomicInteger();
         this.asyncCommitFenced = new AtomicBoolean(false);
-        this.groupMetadata = new ConsumerGroupMetadata(rebalanceConfig.groupId,
+        this.groupMetadata = new SomeInternalConsumerGroupMetadata(rebalanceConfig.groupId,
             JoinGroupRequest.UNKNOWN_GENERATION_ID, JoinGroupRequest.UNKNOWN_MEMBER_ID, rebalanceConfig.groupInstanceId);
         this.throwOnFetchStableOffsetsUnsupported = throwOnFetchStableOffsetsUnsupported;
 
@@ -324,6 +323,7 @@ public final class ConsumerCoordinator extends AbstractCoordinator {
         log.info("Notifying assignor about the new {}", assignment);
 
         try {
+
             assignor.onAssignment(assignment, groupMetadata);
         } catch (Exception e) {
             return e;
@@ -348,7 +348,7 @@ public final class ConsumerCoordinator extends AbstractCoordinator {
             throw new IllegalStateException("Coordinator selected invalid assignment protocol: " + assignmentStrategy);
 
         // Give the assignor a chance to update internal state based on the received assignment
-        groupMetadata = new ConsumerGroupMetadata(rebalanceConfig.groupId, generation, memberId, rebalanceConfig.groupInstanceId);
+        groupMetadata = new SomeInternalConsumerGroupMetadata(rebalanceConfig.groupId, generation, memberId, rebalanceConfig.groupInstanceId);
 
         SortedSet<TopicPartition> ownedPartitions = new TreeSet<>(COMPARATOR);
         ownedPartitions.addAll(subscriptions.assignedPartitions());
@@ -966,7 +966,7 @@ public final class ConsumerCoordinator extends AbstractCoordinator {
      *
      * @return the current consumer group metadata
      */
-    public ConsumerGroupMetadata groupMetadata() {
+    public SomeInternalConsumerGroupMetadata groupMetadata() {
         return groupMetadata;
     }
 

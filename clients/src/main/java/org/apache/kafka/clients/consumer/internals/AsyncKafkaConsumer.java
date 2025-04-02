@@ -216,7 +216,7 @@ public class AsyncKafkaConsumer<K, V> implements ConsumerDelegate<K, V> {
 
     private final ApplicationEventHandler applicationEventHandler;
     private final Time time;
-    private final AtomicReference<Optional<ConsumerGroupMetadata>> groupMetadata = new AtomicReference<>(Optional.empty());
+    private final AtomicReference<Optional<SomeInternalConsumerGroupMetadata>> groupMetadata = new AtomicReference<>(Optional.empty());
     private final AsyncConsumerMetrics kafkaConsumerMetrics;
     private Logger log;
     private final String clientId;
@@ -637,9 +637,9 @@ public class AsyncKafkaConsumer<K, V> implements ConsumerDelegate<K, V> {
 
     }
 
-    private Optional<ConsumerGroupMetadata> initializeGroupMetadata(final ConsumerConfig config,
-                                                                    final GroupRebalanceConfig groupRebalanceConfig) {
-        final Optional<ConsumerGroupMetadata> groupMetadata = initializeGroupMetadata(
+    private Optional<SomeInternalConsumerGroupMetadata> initializeGroupMetadata(final ConsumerConfig config,
+                                                                                final GroupRebalanceConfig groupRebalanceConfig) {
+        final Optional<SomeInternalConsumerGroupMetadata> groupMetadata = initializeGroupMetadata(
             groupRebalanceConfig.groupId,
             groupRebalanceConfig.groupInstanceId
         );
@@ -650,22 +650,22 @@ public class AsyncKafkaConsumer<K, V> implements ConsumerDelegate<K, V> {
         return groupMetadata;
     }
 
-    private Optional<ConsumerGroupMetadata> initializeGroupMetadata(final String groupId,
-                                                                    final Optional<String> groupInstanceId) {
+    private Optional<SomeInternalConsumerGroupMetadata> initializeGroupMetadata(final String groupId,
+                                                                                final Optional<String> groupInstanceId) {
         if (groupId != null) {
             if (groupId.isEmpty()) {
                 throw new InvalidGroupIdException("The configured " + ConsumerConfig.GROUP_ID_CONFIG
                     + " should not be an empty string or whitespace.");
             } else {
-                return Optional.of(initializeConsumerGroupMetadata(groupId, groupInstanceId));
+                return Optional.of(initializeInternalConsumerGroupMetadata(groupId, groupInstanceId));
             }
         }
         return Optional.empty();
     }
 
-    private ConsumerGroupMetadata initializeConsumerGroupMetadata(final String groupId,
-                                                                  final Optional<String> groupInstanceId) {
-        return new ConsumerGroupMetadata(
+    private SomeInternalConsumerGroupMetadata initializeInternalConsumerGroupMetadata(final String groupId,
+                                                                                      final Optional<String> groupInstanceId) {
+        return new SomeInternalConsumerGroupMetadata(
             groupId,
             JoinGroupRequest.UNKNOWN_GENERATION_ID,
             JoinGroupRequest.UNKNOWN_MEMBER_ID,
@@ -676,7 +676,7 @@ public class AsyncKafkaConsumer<K, V> implements ConsumerDelegate<K, V> {
     private void updateGroupMetadata(final Optional<Integer> memberEpoch, final String memberId) {
         memberEpoch.ifPresent(epoch -> groupMetadata.updateAndGet(
                 oldGroupMetadataOptional -> oldGroupMetadataOptional.map(
-                    oldGroupMetadata -> new ConsumerGroupMetadata(
+                    oldGroupMetadata -> new SomeInternalConsumerGroupMetadata(
                         oldGroupMetadata.groupId(),
                         memberEpoch.orElse(oldGroupMetadata.generationId()),
                         memberId,
@@ -1233,7 +1233,9 @@ public class AsyncKafkaConsumer<K, V> implements ConsumerDelegate<K, V> {
         acquireAndEnsureOpen();
         try {
             maybeThrowInvalidGroupIdException();
-            return groupMetadata.get().get();
+            SomeInternalConsumerGroupMetadata internalConsumerGroupMetadata = groupMetadata.get().get();
+
+            return internalConsumerGroupMetadata;
         } finally {
             release();
         }
@@ -1639,7 +1641,7 @@ public class AsyncKafkaConsumer<K, V> implements ConsumerDelegate<K, V> {
     private void resetGroupMetadata() {
         groupMetadata.updateAndGet(
             oldGroupMetadataOptional -> oldGroupMetadataOptional
-                .map(oldGroupMetadata -> initializeConsumerGroupMetadata(
+                .map(oldGroupMetadata -> initializeInternalConsumerGroupMetadata(
                     oldGroupMetadata.groupId(),
                     oldGroupMetadata.groupInstanceId()
                 ))
